@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTDLox - Desktop GUI</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- Icon Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Header Layout for Desktop -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="ri-download-cloud-2-fill logo-icon"></i>
+                    <h2>YTDLox</h2>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="nav-btn icon-btn" title="Recent Downloads"><i class="ri-history-line"></i></button>
+                <button class="nav-btn primary-btn"><i class="ri-download-line"></i> Download</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="download-view">
+                <div class="page-title">
+                    <h1>Download</h1>
+                    <p>Adjust download settings</p>
+                </div>
+
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <button class="tab-btn" data-tab="audio">Audio</button>
+                        <button class="tab-btn active" data-tab="video">Video</button>
+                        <button class="tab-btn" data-tab="command">Command</button>
+                        <div class="tab-indicator"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content active" id="tab-video">
+                    <!-- Media Info First Row -->
+                    <div class="form-grid info-grid">
+                        <div class="input-group full-width">
+                            <label>Title</label>
+                            <input type="text" class="form-control"
+                                value="Havoc and Adaptix C2 Full Course | Build Real Red T">
+                        </div>
+                        <div class="input-group">
+                            <label>Author</label>
+                            <input type="text" class="form-control" value="whitesec cyber security">
+                        </div>
+                        <div class="input-group">
+                            <label>Container</label>
+                            <div class="select-wrapper">
+                                <select class="form-control">
+                                    <option value="default">Default</option>
+                                    <option value="mp4">MP4</option>
+                                    <option value="mkv">MKV</option>
+                                    <option value="webm">WebM</option>
+                                </select>
+                                <i class="ri-arrow-down-s-line select-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Quality -->
+                    <div class="section-container mt-4">
+                        <h3 class="section-title">Video quality</h3>
+                        <div class="quality-card active">
+                            <div class="quality-format">MP4</div>
+                            <div class="quality-details">
+                                <div class="quality-header">
+                                    <span class="resolution">1080P60 (1920x1080)</span>
+                                    <span class="id-tag">id: 399</span>
+                                </div>
+                                <div class="quality-tags">
+                                    <span class="tag blue"><i class="ri-music-2-fill"></i> id: 251</span>
+                                    <span class="tag dark">AV01.0.09M.08</span>
+                                    <span class="tag purple">400.2 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Directory -->
+                    <div class="section-container mt-4">
+                        <h3 class="section-title">Save dir</h3>
+                        <div class="input-group full-width align-center save-dir-group">
+                            <i class="ri-folder-2-line input-icon"></i>
+                            <input type="text" class="form-control with-icon"
+                                value="/Users/karthikeyan/Downloads/YTDLox/Video">
+                            <button class="icon-btn inner-btn"><i class="ri-folder-open-line"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Adjust Video -->
+                    <div class="section-container mt-4">
+                        <h3 class="section-title">Adjust video</h3>
+                        <div class="options-grid">
+                            <button class="toggle-btn"><i class="ri-image-line"></i> Thumbnail</button>
+                            <button class="toggle-btn"><i class="ri-book-read-line"></i> Chapters <span
+                                    class="badge">!</span></button>
+                            <button class="toggle-btn"><i class="ri-subtitles-line"></i> Subtitles <span
+                                    class="badge">!</span></button>
+
+                            <button class="toggle-btn"><i class="ri-music-2-line"></i> Audio</button>
+                            <button class="toggle-btn"><i class="ri-settings-4-line"></i> Recode video</button>
+                            <button class="toggle-btn"><i class="ri-tv-line"></i> Live stream</button>
+
+                            <button class="toggle-btn"><i class="ri-money-dollar-circle-line"></i> SponsorBlock <span
+                                    class="badge">!</span></button>
+                            <button class="toggle-btn"><i class="ri-file-edit-line"></i> Filename template</button>
+                            <button class="toggle-btn disabled"><i class="ri-terminal-box-line"></i> Add extra
+                                commands</button>
+
+                            <button class="toggle-btn"><i class="ri-scissors-cut-line"></i> Cut</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Tab -->
+                <div class="tab-content" id="tab-audio">
+                    <div class="section-container">
+                        <h3 class="section-title">Audio quality</h3>
+                        <div class="quality-card active">
+                            <div class="quality-format">MP3</div>
+                            <div class="quality-details">
+                                <div class="quality-header">
+                                    <span class="resolution">320kbps (High Quality)</span>
+                                </div>
+                                <div class="quality-tags">
+                                    <span class="tag blue"><i class="ri-music-2-fill"></i> id: 140</span>
+                                    <span class="tag purple">15.2 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-container mt-4">
+                        <h3 class="section-title">Save dir</h3>
+                        <div class="input-group full-width align-center save-dir-group">
+                            <i class="ri-folder-2-line input-icon"></i>
+                            <input type="text" class="form-control with-icon"
+                                value="/Users/karthikeyan/Downloads/YTDLox/Audio">
+                            <button class="icon-btn inner-btn"><i class="ri-folder-open-line"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Tab -->
+                <div class="tab-content" id="tab-command">
+                    <div class="section-container">
+                        <h3 class="section-title">Generated command</h3>
+                        <div class="input-group full-width">
+                            <textarea class="form-control" rows="5" readonly
+                                style="font-family: var(--font-mono); resize: vertical;">yt-dlp -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -o '/Users/karthikeyan/Downloads/YTDLox/Video/%(title)s.%(ext)s' --embed-metadata --embed-thumbnail 'https://www.youtube.com/watch?v=bPjNk51by5w'</textarea>
+                        </div>
+                        <button class="primary-btn mt-4" style="margin-left: auto;"><i class="ri-clipboard-line"></i>
+                            Copy Command</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-bar">
+                <div class="url-input-container">
+                    <i class="ri-link url-icon"></i>
+                    <input type="text" class="url-input" placeholder="Paste URL here..."
+                        value="https://www.youtube.com/watch?v=bPjNk51by5w">
+                    <button class="clear-btn"><i class="ri-close-circle-fill"></i></button>
+                </div>
+                <button class="floating-action-btn pulse"><i class="ri-download-cloud-2-fill"></i></button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Buy Me a Coffee Floating Icon -->
+    <a href="https://buymeacoffee.com/psyclox" target="_blank" class="bmac-btn">
+        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
+            style="height: 48px !important;width: 200px !important;">
+    </a>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
