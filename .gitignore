@@ -1,0 +1,13 @@
+# Node dependencies
+node_modules/
+
+# Build and output directories
+dist/
+dist2/
+build-output/
+
+# Executables (Do not commit large binaries to git directly, use GitHub Releases)
+*.exe
+
+# Environment variables
+.env
