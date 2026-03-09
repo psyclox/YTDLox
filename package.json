@@ -1,10 +1,10 @@
 {
     "name": "ytdlox",
-    "version": "3.4.0",
+    "version": "3.4.2",
     "description": "YTDLox - Advanced Desktop YouTube Downloader",
     "main": "main.js",
     "scripts": {
-        "start": "electron .",
+        "start": "npx --no electron .",
         "build": "electron-builder"
     },
     "build": {

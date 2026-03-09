@@ -18,7 +18,8 @@
 
 <body>
     <div class="app-container">
-        <!-- Sidebar / Header Layout for Desktop -->
+
+        <!-- Header -->
         <header class="app-header">
             <div class="header-left">
                 <div class="logo">
@@ -26,63 +27,58 @@
                     <h2>YTDLox</h2>
                 </div>
             </div>
-            <div class="header-right" style="display: flex; gap: 8px; align-items: center;">
-                <a href="https://github.com/psyclox/YTDLox" target="_blank" class="nav-link" title="Check for Updates"
-                    style="display: flex; align-items: center; gap: 4px;">Github
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <div class="header-right">
+                <a href="https://github.com/psyclox/YTDLox" target="_blank" class="nav-link github-link" title="GitHub">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                         <path
                             d="M12 2C6.475 2 2 6.475 2 12a9.994 9.994 0 0 0 6.838 9.488c.5.087.687-.213.687-.476 0-.237-.013-1.024-.013-1.862-2.512.463-3.162-.612-3.362-1.175-.113-.288-.6-1.175-1.025-1.413-.35-.187-.85-.65-.013-.662.788-.013 1.35.725 1.538 1.025.9 1.512 2.338 1.087 2.912.825.088-.65.35-1.087.638-1.337-2.225-.25-4.55-1.113-4.55-4.938 0-1.088.387-1.987 1.025-2.688-.1-.25-.45-1.275.1-2.65 0 0 .837-.262 2.75 1.026a9.28 9.28 0 0 1 2.5-.338c.85 0 1.7.112 2.5.337 1.912-1.3 2.75-1.024 2.75-1.024.55 1.375.2 2.4.1 2.65.637.7 1.025 1.587 1.025 2.687 0 3.838-2.337 4.688-4.562 4.938.362.312.675.912.675 1.85 0 1.337-.013 2.412-.013 2.75 0 .262.188.574.688.474A10.016 10.016 0 0 0 22 12c0-5.525-4.475-10-10-10z">
                         </path>
                     </svg>
-                    <i class="ri-external-link-line" style="font-size: 14px; margin-left:2px;"></i></a>
-                <button class="nav-btn icon-btn" id="history-btn" title="Recent Downloads"><i
-                        class="ri-history-line"></i></button>
+                    Github
+                </a>
                 <button class="nav-btn icon-btn" id="settings-btn" title="Settings"><i
                         class="ri-settings-3-line"></i></button>
             </div>
         </header>
 
         <main class="main-content">
-            <!-- Left Sidebar: Search & Results -->
-            <aside class="left-panel" id="left-panel">
+
+            <!-- Left Panel: Discover -->
+            <aside class="left-panel panel-maximized" id="left-panel">
                 <div class="panel-header"
-                    style="justify-content: space-between; padding: 16px 24px 8px; align-items: center; display: flex;">
+                    style="justify-content: space-between; padding: 16px 20px 8px; align-items: center; display: flex;">
                     <h3 style="font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.1em;">
                         DISCOVER</h3>
-                    <div style="display: flex; gap: 4px;">
-                        <button class="icon-btn" id="maximize-left-btn" title="Expand View"><i
-                                class="ri-fullscreen-line"></i></button>
-                        <button class="icon-btn" id="toggle-left-btn" title="Collapse Panel"><i
-                                class="ri-skip-back-line"></i></button>
-                    </div>
+                    <button class="icon-btn" id="toggle-left-btn" title="Collapse Panel"><i
+                            class="ri-skip-back-line"></i></button>
                 </div>
+
                 <div class="search-bar" style="flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px; width: 100%;">
-                        <div class="select-wrapper" style="flex: 1;">
-                            <select id="search-type" class="form-control"
-                                style="padding: 8px 12px; font-size: 13px; font-family: var(--font-body);">
-                                <option value="video">Video Search</option>
-                                <option value="channel">Channel / Playlist URL</option>
-                            </select>
-                            <i class="ri-arrow-down-s-line select-icon" style="right: 12px;"></i>
-                        </div>
+                    <div class="select-wrapper">
+                        <select id="search-type" class="form-control"
+                            style="padding: 8px 12px; font-size: 13px; font-family: var(--font-body);">
+                            <option value="video">Video Search</option>
+                            <option value="channel">Channel / Playlist URL</option>
+                        </select>
+                        <i class="ri-arrow-down-s-line select-icon" style="right: 12px;"></i>
                     </div>
                     <div style="display: flex; gap: 8px; width: 100%;">
-                        <input type="text" id="search-input" placeholder="Search parameters..." class="search-input">
+                        <input type="text" id="search-input" placeholder="Search or paste URL..." class="search-input">
                         <button class="search-btn" id="search-btn">GO</button>
                     </div>
                 </div>
+
                 <div class="search-results" id="search-results"
                     style="display: flex; flex-direction: column; gap: 8px;">
-                    <!-- Results populated by JS -->
                     <div class="empty-state-small">Search or select videos</div>
                 </div>
-                <!-- Action Button for Checkboxes -->
-                <div style="padding: 0 24px; margin-top: 12px;">
+
+                <div style="padding: 0 16px; margin-top: 12px;">
                     <button class="primary-btn justify-center" id="download-selected-btn"
                         style="width: 100%; display: none; background: #10B981; color: white; border: none; padding: 12px; border-radius: 8px;">Download
                         Selected <i class="ri-download-line ml-2"></i></button>
                 </div>
+
                 <div class="left-footer">
                     <a href="https://buymeacoffee.com/psyclox" target="_blank" class="donate-btn">
                         Donate <i class="ri-cup-line cup-icon"></i>
@@ -90,16 +86,18 @@
                 </div>
             </aside>
 
-            <!-- Center Panel: Settings -->
+            <!-- Center Panel -->
             <section class="center-panel">
-                <!-- Floating URL and Download Button Moved to Top -->
-                <div class="url-action-bar flex-row" style="margin: 24px 24px 0 24px; position: static;">
+
+                <!-- URL Bar -->
+                <div class="url-action-bar">
                     <i class="ri-link url-icon"></i>
-                    <input type="text" class="url-input flex-1" id="url-input"
-                        placeholder="Paste YouTube URL or Playlist here..." value="">
-                    <button class="clear-btn" id="clear-btn"><i class="ri-close-circle-fill"></i></button>
-                    <button class="floating-action-btn pulse ml-2" id="download-btn"><i
-                            class="ri-download-cloud-2-fill"></i></button>
+                    <input type="text" class="url-input flex-1" id="url-input" placeholder="Paste YouTube URL here..."
+                        value="">
+                    <button class="clear-btn" id="clear-btn" title="Clear"><i class="ri-close-circle-fill"></i></button>
+                    <button class="floating-action-btn pulse ml-2" id="download-btn" title="Download">
+                        <i class="ri-download-cloud-2-fill"></i>
+                    </button>
                 </div>
 
                 <div class="download-view">
@@ -109,12 +107,17 @@
 
                     <div class="tabs-container">
                         <div class="tabs">
-                            <button class="tab-btn" data-tab="audio">Audio</button>
-                            <button class="tab-btn active" data-tab="video">Video</button>
+                            <button class="tab-btn active" data-tab="video">
+                                <i class="ri-movie-line" style="margin-right:6px;font-size:14px;"></i>Video
+                            </button>
+                            <button class="tab-btn" data-tab="audio">
+                                <i class="ri-music-2-line" style="margin-right:6px;font-size:14px;"></i>Audio Only
+                            </button>
                             <div class="tab-indicator"></div>
                         </div>
                     </div>
 
+                    <!-- Video Tab -->
                     <div class="tab-content active" id="tab-video">
                         <div class="form-grid info-grid mt-4">
                             <div class="input-group full-width">
@@ -130,7 +133,7 @@
                                 <label>Container</label>
                                 <div class="select-wrapper">
                                     <select class="form-control" id="opt-container">
-                                        <option value="mkv">MKV (Best Audio Sync)</option>
+                                        <option value="mkv">MKV (Best Compat)</option>
                                         <option value="mp4">MP4</option>
                                         <option value="webm">WebM</option>
                                     </select>
@@ -148,23 +151,61 @@
                             <div class="quality-list" id="video-quality" style="display: none;"></div>
                         </div>
 
-                        <!-- Extra Options... maybe hide for now or keep concise -->
                         <div class="section-container mt-4">
-                            <h3 class="section-title">Adjust video</h3>
+                            <h3 class="section-title">Options</h3>
                             <div class="options-grid">
-                                <button class="toggle-btn" id="opt-thumbnail"><i class="ri-image-line"></i>
-                                    Thumbnail</button>
-                                <button class="toggle-btn active" id="opt-subtitles"><i class="ri-subtitles-line"></i>
-                                    Subtitles</button>
-                                <button class="toggle-btn active" id="opt-bestaudio"><i class="ri-music-2-line"></i>
-                                    Auto Best Audio</button>
+                                <button class="toggle-btn" id="opt-thumbnail"><i
+                                        class="ri-image-line"></i>Thumbnail</button>
+                                <button class="toggle-btn" id="opt-subtitles"><i
+                                        class="ri-subtitles-line"></i>Subtitles</button>
+                                <button class="toggle-btn active" id="opt-bestaudio"><i class="ri-music-2-line"></i>Auto
+                                    Best Audio</button>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Audio-Only Tab -->
                     <div class="tab-content" id="tab-audio">
-                        <div class="section-container">
-                            <h3 class="section-title">Audio quality</h3>
+                        <div class="audio-only-header mt-4">
+                            <div class="audio-mode-badge">
+                                <i class="ri-music-2-fill"></i>
+                                <span>Audio Only Mode</span>
+                            </div>
+                            <p class="audio-mode-desc">Downloads and converts to a standalone audio file. No video
+                                stream.</p>
+                        </div>
+
+                        <div class="form-grid mt-4" style="grid-template-columns: 1fr 1fr;">
+                            <div class="input-group full-width">
+                                <label>Title</label>
+                                <input type="text" class="form-control" id="video-title-audio" value=""
+                                    placeholder="Video Title" readonly style="opacity:0.6;">
+                            </div>
+                            <div class="input-group">
+                                <label>Output Format</label>
+                                <div class="select-wrapper">
+                                    <select class="form-control" id="opt-audio-container">
+                                        <option value="mp3">MP3 (Universal)</option>
+                                        <option value="m4a">M4A (AAC)</option>
+                                        <option value="opus">Opus (Best Quality)</option>
+                                        <option value="flac">FLAC (Lossless)</option>
+                                        <option value="wav">WAV (Uncompressed)</option>
+                                        <option value="ogg">OGG Vorbis</option>
+                                    </select>
+                                    <i class="ri-arrow-down-s-line select-icon"></i>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Thumbnail</label>
+                                <button class="toggle-btn" id="opt-audio-thumbnail" style="height:46px;"><i
+                                        class="ri-image-line"></i>Embed Thumbnail</button>
+                            </div>
+                        </div>
+
+                        <div class="section-container mt-4">
+                            <h3 class="section-title">Source audio stream</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Select the source
+                                audio stream to convert from. Higher bitrate = better quality.</p>
                             <div class="empty-state" id="audio-empty">
                                 <i class="ri-music-2-line"></i>
                                 <p>Select a video to fetch audio formats</p>
@@ -172,27 +213,28 @@
                             <div class="quality-list" id="audio-quality" style="display: none;"></div>
                         </div>
                     </div>
-                </div>
 
+                </div>
             </section>
 
-            <!-- Right Sidebar: Progress -->
+            <!-- Right Panel: Progress -->
             <aside class="right-panel" id="right-panel">
                 <div class="panel-header" style="justify-content: space-between; align-items: center;">
                     <button class="icon-btn" id="toggle-right-btn" title="Collapse Panel"><i
                             class="ri-skip-forward-line"></i></button>
-                    <h3>PROGRESS</h3>
+                    <h3>DOWNLOADS</h3>
                 </div>
                 <div class="progress-list" id="progress-list">
-                    <!-- Progress items inserted here via JS -->
-                    <div class="empty-state-small empty-progress"><i class="ri-download-2-line"></i><br>No active
-                        downloads</div>
+                    <div class="empty-state-small empty-progress">
+                        <i class="ri-download-2-line"></i><br>No active downloads
+                    </div>
                 </div>
             </aside>
+
         </main>
     </div>
 
-    <!-- Settings Modal Overlay -->
+    <!-- Settings Modal -->
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -201,7 +243,7 @@
             </div>
             <div class="modal-body">
                 <div class="settings-group">
-                    <label>Save Directory (Video & Audio)</label>
+                    <label>Save Directory</label>
                     <div class="input-group full-width align-center save-dir-group">
                         <i class="ri-folder-2-line input-icon"></i>
                         <input type="text" class="form-control with-icon" id="default-save-dir" readonly
@@ -231,18 +273,17 @@
                     <label>Default Quality Priority</label>
                     <div class="select-wrapper">
                         <select class="form-control" id="app-default-quality">
-                            <option value="max">Max Quality (Default)</option>
-                            <option value="medium">Medium Quality (1080p/720p)</option>
-                            <option value="low">Low Quality (480p/360p)</option>
+                            <option value="max">Max Quality</option>
+                            <option value="medium">Medium (1080p/720p)</option>
+                            <option value="low">Low (480p/360p)</option>
                         </select>
                         <i class="ri-arrow-down-s-line select-icon"></i>
                     </div>
                 </div>
                 <div class="settings-footer mt-4" style="text-align: center; margin-top: 32px;">
-                    <p class="brand-text" style="color: var(--text-muted); font-size: 13px;">YTDLox v3.4.0 | Developed
-                        by Psyclox</p>
-                    <a href="https://github.com/psyclox" target="_blank" class="brand-link"
-                        style="color: var(--accent-blue); text-decoration: none;">github.com/psyclox</a>
+                    <p style="color: var(--text-muted); font-size: 13px;">YTDLox v3.4.2 · Developed by Psyclox</p>
+                    <a href="https://github.com/psyclox" target="_blank"
+                        style="color: var(--accent-blue); text-decoration: none; font-size:13px;">github.com/psyclox</a>
                 </div>
             </div>
         </div>
@@ -256,19 +297,18 @@
                 <button class="icon-btn close-modal-btn" id="close-audio-modal"><i class="ri-close-line"></i></button>
             </div>
             <div class="modal-body">
-                <p class="modal-desc" style="color: var(--text-secondary); margin-bottom: 16px;">Multiple audio tracks
-                    found. Choose which tracks to download and merge. (Highest quality is checked by default).</p>
-                <div class="audio-tracks-list" id="audio-tracks-list"
-                    style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-                    <!-- checkboxes for each audio format -->
-                </div>
-                <button class="primary-btn mt-4 full-width justify-center" id="confirm-audio-btn"
-                    style="width: 100%; justify-content: center; margin-top: 16px;">Confirm Selection</button>
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size:13px;">Multiple audio tracks
+                    found. Choose which to merge. Highest quality is checked by default.</p>
+                <div id="audio-tracks-list"
+                    style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+                <button class="primary-btn mt-4" id="confirm-audio-btn"
+                    style="width: 100%; justify-content: center; margin-top: 16px; background: var(--accent-blue); color: white;">Confirm
+                    Selection</button>
             </div>
         </div>
     </div>
 
-    <!-- PotPlayer Tips Popup -->
+    <!-- Tips Popup -->
     <div class="tips-popup" id="tips-popup">
         <i class="ri-information-line"></i>
         <span>Tip: Use <a href="https://potplayer.tv/" target="_blank">PotPlayer</a> if VLC shows a whitescreen for MKV

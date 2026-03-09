@@ -4,36 +4,28 @@ const { create } = require('youtube-dl-exec');
 const ffmpegStatic = require('ffmpeg-static');
 const fs = require('fs');
 
-let ytDlpPath;
+// These are initialized once app is ready (inside app.whenReady)
+let youtubedl;
 let ffmpegPath;
+let configPath;
 
-if (app.isPackaged) {
-    ytDlpPath = path.join(process.resourcesPath, 'youtube-dl-bin', 'yt-dlp.exe');
-    ffmpegPath = path.join(process.resourcesPath, 'ffmpeg-bin', 'ffmpeg.exe');
-} else {
-    ytDlpPath = path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe');
-    ffmpegPath = ffmpegStatic;
+// Returns default config — called after app is ready so app.getPath works
+function getDefaultConfig() {
+    return {
+        theme: 'dark',
+        defaultQuality: 'max',
+        maxDownloads: 2,
+        defaultSaveDir: app.getPath('downloads'),
+        language: 'en'
+    };
 }
-const youtubedl = create(ytDlpPath);
-
-// Config and State paths
-const userDataPath = app.getPath('userData');
-const configPath = path.join(userDataPath, 'ytdlox_config.json');
-const downloadsDbPath = path.join(userDataPath, 'ytdlox_downloads.json');
-
-// Default Config
-const defaultConfig = {
-    theme: 'dark',
-    defaultQuality: 'max',
-    maxDownloads: 2,
-    defaultSaveDir: app.getPath('downloads'),
-    language: 'en'
-};
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 900,
-        height: 700,
+        width: 960,
+        height: 720,
+        minWidth: 800,
+        minHeight: 600,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -51,6 +43,20 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    // Initialize paths now that app is fully ready
+    const ytDlpPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'youtube-dl-bin', 'yt-dlp.exe')
+        : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe');
+
+    ffmpegPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'ffmpeg-bin', 'ffmpeg.exe')
+        : ffmpegStatic;
+
+    youtubedl = create(ytDlpPath);
+
+    const userDataPath = app.getPath('userData');
+    configPath = path.join(userDataPath, 'ytdlox_config.json');
+
     createWindow();
 
     app.on('activate', () => {
@@ -85,9 +91,9 @@ ipcMain.handle('config:get', () => {
             const data = fs.readFileSync(configPath, 'utf8');
             return JSON.parse(data);
         }
-        return defaultConfig;
+        return getDefaultConfig();
     } catch (e) {
-        return defaultConfig;
+        return getDefaultConfig();
     }
 });
 
@@ -100,32 +106,48 @@ ipcMain.handle('config:set', (event, newConfig) => {
     }
 });
 
+// Shell handlers – open file or reveal in folder
+ipcMain.handle('shell:openFile', async (event, filePath) => {
+    const result = await shell.openPath(filePath);
+    return result; // empty string on success, error message on failure
+});
+
+ipcMain.handle('shell:openFolder', (event, filePath) => {
+    shell.showItemInFolder(filePath);
+    return { success: true };
+});
+
 // Search & Playlist handler
-// Search & Playlist handler
-ipcMain.handle('ytdl:search', async (event, query, searchType) => {
+ipcMain.handle('ytdl:search', async (event, query, searchType, offset = 0) => {
     try {
         let searchTarget = query;
         let pArgs = {
             dumpSingleJson: true,
             flatPlaylist: true,
             noCheckCertificates: true,
-            noWarnings: true
+            noWarnings: true,
+            socketTimeout: 15
         };
 
         if (searchType === 'video') {
-            searchTarget = `ytsearch50:${query}`;
+            const limit = 20;
+            searchTarget = `ytsearch${offset + limit}:${query}`;
+            pArgs.playlistItems = `${offset + 1}-${offset + limit}`;
         } else if (searchType === 'channel' || searchType === 'playlist') {
-            // Direct URL
             searchTarget = query;
-            // Clean up common handle formats
             if (query.startsWith('@')) {
-                searchTarget = `https://www.youtube.com/${query}`;
+                searchTarget = `https://www.youtube.com/${query}/videos`;
+            } else if (query.includes('youtube.com/') && !query.includes('/watch') && !query.includes('/playlist') && !query.endsWith('/videos')) {
+                if (query.includes('/c/') || query.includes('/channel/') || query.includes('/@')) {
+                    searchTarget = searchTarget.replace(/\/$/, '') + '/videos';
+                }
             }
+            const limit = 20;
+            pArgs.playlistItems = `${offset + 1}-${offset + limit}`;
         }
 
         const output = await youtubedl(searchTarget, pArgs);
 
-        // output.entries exists for playlists/searches
         const entries = output.entries ? output.entries.map(e => ({
             id: e.id,
             title: e.title,
@@ -156,7 +178,9 @@ ipcMain.handle('ytdl:getInfo', async (event, url) => {
             dumpSingleJson: true,
             noCheckCertificates: true,
             noWarnings: true,
-            preferFreeFormats: true
+            preferFreeFormats: true,
+            noPlaylist: true,
+            socketTimeout: 15
         });
 
         const formats = output.formats.map(format => ({
@@ -167,7 +191,9 @@ ipcMain.handle('ytdl:getInfo', async (event, url) => {
             filesize: format.filesize || format.filesize_approx,
             vcodec: format.vcodec,
             acodec: format.acodec,
-            format_note: format.format_note
+            format_note: format.format_note,
+            tbr: format.tbr,
+            abr: format.abr
         }));
 
         return {
@@ -191,27 +217,46 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
             fs.mkdirSync(saveDir, { recursive: true });
         }
 
-        const outputPath = path.join(saveDir, '%(title)s.%(ext)s');
+        const outputTemplate = path.join(saveDir, '%(title)s.%(ext)s');
 
         let dlOptions = {
-            output: outputPath,
+            output: outputTemplate,
             noWarnings: true,
             noCheckCertificates: true,
-            ffmpegLocation: ffmpegPath
+            ffmpegLocation: ffmpegPath,
+            socketTimeout: 30
         };
 
-        if (format && format !== 'default') {
-            dlOptions.format = format;
+        const isAudioOnly = options && options.isAudioOnly;
+
+        if (isAudioOnly) {
+            // Audio-only: extract and convert to desired format
+            dlOptions.extractAudio = true;
+            dlOptions.audioFormat = (options.audioContainer || 'mp3').toLowerCase();
+            dlOptions.audioQuality = 0; // best
+            // Use the specific format ID if provided, otherwise best audio
+            if (format && format !== 'default' && format !== 'bestaudio/best') {
+                dlOptions.format = format;
+            } else {
+                dlOptions.format = 'bestaudio/best';
+            }
+        } else {
+            // Video download
+            if (format && format !== 'default') {
+                dlOptions.format = format;
+            }
+            if (options && options.mergeOutputFormat) {
+                dlOptions.mergeOutputFormat = options.mergeOutputFormat;
+            }
         }
 
         if (options) {
-            if (options.mergeOutputFormat) dlOptions.mergeOutputFormat = options.mergeOutputFormat;
             if (options.embedThumbnail) dlOptions.embedThumbnail = true;
             if (options.embedSubs) {
-                dlOptions.writeSubs = true;
-                dlOptions.writeAutoSubs = true;
-                dlOptions.subLangs = 'all,-live_chat';
+                // FIX: Do NOT set writeSubs — that creates sidecar .srt files.
+                // Only embedSubs ensures subtitles are embedded without writing separate files.
                 dlOptions.embedSubs = true;
+                dlOptions.subLangs = 'all,-live_chat';
             }
             if (options.embedChapters) dlOptions.embedChapters = true;
             if (options.embedMetadata) dlOptions.embedMetadata = true;
@@ -220,12 +265,16 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
         return new Promise((resolve) => {
             const downloadProcess = youtubedl.exec(url, dlOptions);
 
+            let errorLog = '';
+            let resolvedFilePath = null; // Track actual output file path
+
             downloadProcess.stdout.on('data', (data) => {
                 const outputStr = data.toString();
-                // Parse percentage and speed if it matches standard yt-dlp output
+
+                // Parse download progress
                 // Example: [download]  15.2% of  54.60MiB at    1.12MiB/s ETA 00:41
-                const regex = /\[download\]\s+([\d\.]+)%\s+of\s+~?([\d\.]+[KMG]?iB)\s+at\s+([\d\.]+[KMG]?iB\/s)\s+ETA\s+([\d:]+)/;
-                const match = outputStr.match(regex);
+                const progressRegex = /\[download\]\s+([\d\.]+)%\s+of\s+~?([\d\.]+[KMG]?iB)\s+at\s+([\d\.]+[KMG]?iB\/s)\s+ETA\s+([\d:]+)/;
+                const match = outputStr.match(progressRegex);
                 if (match) {
                     event.sender.send('download-progress', {
                         id: id,
@@ -235,17 +284,47 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
                         eta: match[4]
                     });
                 } else if (outputStr.includes('[Merger]') || outputStr.includes('[ExtractAudio]')) {
-                    event.sender.send('download-status', { id: id, status: 'Processing/Merging...' });
+                    event.sender.send('download-status', { id: id, status: 'Processing...' });
+                }
+
+                // Track the resolved output file path from yt-dlp stdout lines:
+                // "[download] Destination: C:\...\filename.ext"
+                // "[ExtractAudio] Destination: C:\...\filename.mp3"
+                // "[Merger] Merging formats into "C:\...\filename.mkv""
+                const destMatch = outputStr.match(/\[download\] Destination: (.+)/);
+                const extractMatch = outputStr.match(/\[ExtractAudio\] Destination: (.+)/);
+                const mergerMatch = outputStr.match(/\[Merger\] Merging formats into "(.+)"/);
+
+                if (mergerMatch) {
+                    resolvedFilePath = mergerMatch[1].trim();
+                } else if (extractMatch) {
+                    resolvedFilePath = extractMatch[1].trim();
+                } else if (destMatch) {
+                    resolvedFilePath = destMatch[1].trim();
                 }
             });
 
+            if (downloadProcess.stderr) {
+                downloadProcess.stderr.on('data', (data) => {
+                    errorLog += data.toString() + ' ';
+                });
+            }
+
             downloadProcess.on('close', (code) => {
                 if (code === 0) {
-                    event.sender.send('download-complete', { id: id });
+                    event.sender.send('download-complete', {
+                        id: id,
+                        filePath: resolvedFilePath || null
+                    });
                     resolve({ success: true });
                 } else {
-                    event.sender.send('download-error', { id: id, error: `Process exited with code ${code}` });
-                    resolve({ success: false, error: `Process exited with code ${code}` });
+                    const finalErr = errorLog.trim() || `Process exited with code ${code}`;
+                    console.error('Download failed:', finalErr);
+                    event.sender.send('download-error', {
+                        id: id,
+                        error: finalErr.length > 150 ? finalErr.substring(0, 150) + '...' : finalErr
+                    });
+                    resolve({ success: false, error: finalErr });
                 }
             });
 
