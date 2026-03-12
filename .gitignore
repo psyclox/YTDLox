@@ -11,3 +11,6 @@ build-output/
 
 # Environment variables
 .env
+
+# Releases folder
+releases/
