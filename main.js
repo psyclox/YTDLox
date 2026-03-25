@@ -74,9 +74,11 @@ app.whenReady().then(() => {
         ? path.join(process.resourcesPath, 'youtube-dl-bin', 'yt-dlp.exe')
         : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe');
 
+    // Point to the DIRECTORY containing both ffmpeg.exe and ffprobe.exe
+    // yt-dlp's --ffmpeg-location accepts a directory and finds both binaries inside it
     ffmpegPath = app.isPackaged
-        ? path.join(process.resourcesPath, 'ffmpeg-bin', 'ffmpeg.exe')
-        : ffmpegStatic;
+        ? path.join(process.resourcesPath, 'ffmpeg-bin')
+        : path.dirname(ffmpegStatic);
 
     youtubedl = create(ytDlpPath);
 

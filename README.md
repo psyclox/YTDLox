@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.8.1-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.9.0-blue?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows" alt="Platform">
   <img src="https://img.shields.io/badge/electron-33.x-47848F?style=flat-square&logo=electron" alt="Electron">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
@@ -83,11 +83,11 @@ If you find YTDLox useful, consider supporting the development and more updates!
 ## 🚀 Getting Started
 
 ### Option 1: Portable (No Install)
-1. Download `YTDLox-Portable-3.8.1.exe` from [Releases](https://github.com/psyclox/YTDLox/releases)
+1. Download `YTDLox-Portable-3.9.0.exe` from [Releases](https://github.com/psyclox/YTDLox/releases)
 2. Run the executable — no installation needed
 
 ### Option 2: Installer
-1. Download `YTDLox Setup 3.8.1.exe` from [Releases](https://github.com/psyclox/YTDLox/releases)
+1. Download `YTDLox Setup 3.9.0.exe` from [Releases](https://github.com/psyclox/YTDLox/releases)
 2. Run the installer and follow the setup wizard
 
 > **No Node.js, Python, or command-line tools required.** Everything is bundled inside the app.
