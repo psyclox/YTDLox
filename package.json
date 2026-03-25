@@ -1,10 +1,10 @@
 {
     "name": "ytdlox",
-    "version": "3.4.2",
+    "version": "3.8.1",
     "description": "YTDLox - Advanced Desktop YouTube Downloader",
     "main": "main.js",
     "scripts": {
-        "start": "npx --no electron .",
+        "start": "cross-env ELECTRON_RUN_AS_NODE=0 electron .",
         "build": "electron-builder"
     },
     "build": {
@@ -17,6 +17,7 @@
             "index.html",
             "css/**/*",
             "js/**/*",
+            "icons/**/*",
             "node_modules/**/*",
             "!node_modules/electron/**",
             "!node_modules/electron-*/**",
@@ -42,18 +43,26 @@
             }
         ],
         "win": {
-            "target": "nsis"
+            "icon": "icons/ytdlox_logo.png",
+            "target": [
+                "portable",
+                "nsis"
+            ]
         },
         "nsis": {
             "oneClick": false,
             "allowToChangeInstallationDirectory": true
         },
+        "portable": {
+            "artifactName": "YTDLox-Portable-${version}.exe"
+        },
         "directories": {
-            "output": "build-output"
+            "output": "releases"
         }
     },
     "devDependencies": {
-        "electron": "^40.6.0",
+        "cross-env": "^10.1.0",
+        "electron": "^33.4.11",
         "electron-builder": "^26.8.1"
     },
     "dependencies": {

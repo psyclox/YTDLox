@@ -1121,3 +1121,138 @@ body {
         width: 0;
     }
 }
+
+/* ── Logo Image ────────────────────────── */
+.logo-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+/* ── Right Panel Tabs ──────────────────── */
+.right-panel-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-main);
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.right-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.right-tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.right-tab-btn.active {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.right-tab-btn i {
+    font-size: 13px;
+}
+
+/* ── History List ──────────────────────── */
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-entries {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-item {
+    background: var(--bg-surface);
+    border-radius: var(--border-radius-sm);
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.history-item:hover {
+    border-color: var(--accent-blue);
+    background: var(--bg-surface-hover);
+}
+
+.history-item-title {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.history-item-date {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+}
+
+.history-item-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.clear-history-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.clear-history-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #EF4444;
+    color: #EF4444;
+}
+
+/* Hide history/downloads panel content when collapsed */
+.right-panel.panel-collapsed .history-list {
+    display: none !important;
+}
+
+.right-panel.panel-collapsed .right-panel-tabs {
+    display: none !important;
+}

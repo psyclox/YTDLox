@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setConfig: (config) => ipcRenderer.invoke('config:set', config),
     openFile: (filePath) => ipcRenderer.invoke('shell:openFile', filePath),
     openFolder: (filePath) => ipcRenderer.invoke('shell:openFolder', filePath),
+    // History APIs
+    getHistory: () => ipcRenderer.invoke('history:get'),
+    addHistory: (entry) => ipcRenderer.invoke('history:add', entry),
+    clearHistory: () => ipcRenderer.invoke('history:clear'),
+    // Download event listeners
     onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (_event, data) => callback(data)),
     onDownloadStatus: (callback) => ipcRenderer.on('download-status', (_event, data) => callback(data)),
     onDownloadComplete: (callback) => ipcRenderer.on('download-complete', (_event, data) => callback(data)),

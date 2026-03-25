@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let availableAudioFormats = [];
     let activeDownloads = new Set();
     let selectedSearchUrls = new Set();
+    // Track file paths for completed downloads (id -> { filePath, title, url })
+    let completedDownloads = {};
 
     // UI Elements
     const urlInput = document.getElementById('url-input');
@@ -34,6 +36,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsModal = document.getElementById('settings-modal');
     const audioSelectModal = document.getElementById('audio-select-modal');
     const tipsPopup = document.getElementById('tips-popup');
+
+    // History Elements
+    const historyList = document.getElementById('history-list');
+    const historyEntries = document.getElementById('history-entries');
 
     // Initialize config
     if (window.electronAPI) {
@@ -75,7 +81,88 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => tipsPopup.classList.remove('show'), 5000);
     }, 2000);
 
-    // --- Tab Logic ---
+    // --- Right Panel Tab Logic (Downloads / History) ---
+    const rightTabBtns = document.querySelectorAll('.right-tab-btn');
+    rightTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            rightTabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.getAttribute('data-right-tab');
+            if (tab === 'history') {
+                progressList.style.display = 'none';
+                historyList.style.display = 'flex';
+                loadHistory();
+            } else {
+                progressList.style.display = 'flex';
+                historyList.style.display = 'none';
+            }
+        });
+    });
+
+    // --- History ---
+    async function loadHistory() {
+        if (!window.electronAPI) return;
+        const history = await window.electronAPI.getHistory();
+        renderHistory(history);
+    }
+
+    function renderHistory(history) {
+        if (!history || history.length === 0) {
+            historyEntries.innerHTML = '<div class="empty-state-small"><i class="ri-history-line" style="font-size:22px; display:block; margin-bottom:8px; color:var(--text-secondary);"></i>No download history</div>';
+            return;
+        }
+        historyEntries.innerHTML = history.map((entry, idx) => {
+            const date = new Date(entry.date);
+            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return `
+                <div class="history-item" data-idx="${idx}">
+                    <div class="history-item-title" title="${(entry.title || '').replace(/"/g, '&quot;')}">${entry.title || 'Unknown'}</div>
+                    <div class="history-item-date">${dateStr}</div>
+                    <div class="history-item-actions">
+                        ${entry.filePath ? `
+                            <button class="action-link-btn history-play-btn" data-filepath="${encodeURIComponent(entry.filePath)}" title="Play">
+                                <i class="ri-play-circle-line"></i> Play
+                            </button>
+                            <button class="action-link-btn history-folder-btn" data-filepath="${encodeURIComponent(entry.filePath)}" title="Open Folder">
+                                <i class="ri-folder-open-line"></i> Folder
+                            </button>
+                        ` : (entry.saveDir ? `
+                            <button class="action-link-btn history-folder-btn" data-filepath="${encodeURIComponent(entry.saveDir)}" title="Open Folder">
+                                <i class="ri-folder-open-line"></i> Folder
+                            </button>
+                        ` : '')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Event delegation for history play/folder buttons
+    historyEntries?.addEventListener('click', async (e) => {
+        const playBtn = e.target.closest('.history-play-btn');
+        const folderBtn = e.target.closest('.history-folder-btn');
+        if (playBtn) {
+            const fp = decodeURIComponent(playBtn.getAttribute('data-filepath'));
+            const result = await window.electronAPI.openFile(fp);
+            if (result && result !== '') {
+                alert('Could not open file: ' + result);
+            }
+        } else if (folderBtn) {
+            const fp = decodeURIComponent(folderBtn.getAttribute('data-filepath'));
+            window.electronAPI.openFolder(fp);
+        }
+    });
+
+    // Clear history button
+    document.getElementById('clear-history-btn')?.addEventListener('click', async () => {
+        if (!window.electronAPI) return;
+        if (confirm('Clear all download history?')) {
+            await window.electronAPI.clearHistory();
+            renderHistory([]);
+        }
+    });
+
+    // --- Center Tab Logic ---
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     const tabIndicator = document.querySelector('.tab-indicator');
@@ -163,7 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!isLoadMore) {
             currentSearchQuery = query;
-            currentSearchType = document.getElementById('search-type')?.value || 'video';
+            currentSearchType = 'video';
             currentSearchOffset = 0;
             searchResults.innerHTML = '<div class="empty-state-small"><i class="ri-loader-4-line ri-spin"></i> Searching...</div>';
             selectedSearchUrls.clear();
@@ -245,16 +332,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const urlsToDownload = Array.from(selectedSearchUrls);
 
-        for (const url of urlsToDownload) {
-            await loadVideoInfo(url);
-            await new Promise(r => setTimeout(r, 200));
-            document.getElementById('download-btn').click();
-            await new Promise(r => setTimeout(r, 500));
-        }
-
+        // Clear selection immediately so user sees feedback
         selectedSearchUrls.clear();
         document.querySelectorAll('.search-checkbox').forEach(cb => cb.checked = false);
         updateDownloadSelectedBtn();
+
+        for (const url of urlsToDownload) {
+            // Respect max concurrent downloads — wait for a slot
+            while (activeDownloads.size >= appConfig.maxDownloads) {
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            // Fetch video info independently for each URL
+            let title = url;
+            let videoFmt = 'bestvideo';
+            try {
+                const info = await window.electronAPI.getVideoInfo(url);
+                if (info.success && info.data) {
+                    title = info.data.title || url;
+                    // Pick the best video format from the fetched data
+                    const vidFormats = info.data.formats
+                        .filter(f => f.vcodec !== 'none' && f.resolution !== 'Audio')
+                        .sort((a, b) => (b.height || b.tbr || b.filesize || 0) - (a.height || a.tbr || a.filesize || 0));
+                    if (vidFormats.length > 0) {
+                        // Apply quality preference
+                        let targetIdx = 0;
+                        if (appConfig.defaultQuality === 'medium') {
+                            const idx = vidFormats.findIndex(f => f.height <= 1080);
+                            targetIdx = idx >= 0 ? idx : 0;
+                        } else if (appConfig.defaultQuality === 'low') {
+                            const idx = vidFormats.findIndex(f => f.height <= 480);
+                            targetIdx = idx >= 0 ? idx : vidFormats.length - 1;
+                        }
+                        videoFmt = vidFormats[targetIdx].id;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to get info for', url, e);
+            }
+
+            const downloadId = 'dl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+            addProgressItem(downloadId, title);
+            activeDownloads.add(downloadId);
+            completedDownloads[downloadId] = { title, url, saveDir: appConfig.defaultSaveDir };
+
+            const finalFormat = `${videoFmt}+bestaudio/best`;
+            executeDownload(url, finalFormat, downloadId);
+
+            // Small delay to avoid ID collisions
+            await new Promise(r => setTimeout(r, 200));
+        }
     });
 
     searchBtn.addEventListener('click', () => performSearch(searchInput.value.trim()));
@@ -335,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="quality-format" style="background:var(--tag-purple);">${fmt.ext.toUpperCase()}</div>
                     <div class="quality-details">
                         <div class="quality-header">
-                            <span class="resolution">${fmt.format_note || 'Audio Only'}</span>
+                            <span class="resolution">${fmt.format_note || 'Audio Only'}${fmt.language ? ` [${fmt.language}]` : ''}</span>
                             <span class="id-tag">id: ${fmt.id}</span>
                         </div>
                         <div class="quality-tags">
@@ -357,12 +484,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadVideoInfo(url) {
         if (!url || !window.electronAPI) return;
-
-        // --- CACHE GUARD: skip network fetch if we already have this URL's data ---
-        if (ytDataCache[url]) {
-            populateFormats(ytDataCache[url]);
-            return;
-        }
 
         // Show loading state
         videoEmpty.style.display = 'flex';
@@ -444,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg-main); border-radius:var(--border-radius-sm);">
                 <input type="checkbox" class="audio-track-cb" value="${fmt.id}" id="audio-${fmt.id}" ${idx === 0 ? 'checked' : ''} style="width:18px;height:18px;">
                 <label for="audio-${fmt.id}" style="flex:1; cursor:pointer;">
-                    <strong>${fmt.format_note || 'Audio'}</strong> (${fmt.acodec})
+                    <strong>${fmt.format_note || 'Audio'}${fmt.language ? ` [${fmt.language}]` : ''}</strong> (${fmt.acodec})
                     <span style="font-size:12px; color:var(--text-secondary);">ID: ${fmt.id} ${fmt.filesize ? '- ' + (fmt.filesize / 1024 / 1024).toFixed(1) + 'MB' : ''}</span>
                 </label>
             </div>
@@ -466,9 +587,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const activeTabId = document.querySelector('.tab-content.active')?.id;
         const isAudioTab = activeTabId === 'tab-audio';
         const downloadId = 'dl_' + Date.now();
+        const title = videoTitle.value || url;
 
-        addProgressItem(downloadId, videoTitle.value || url);
+        addProgressItem(downloadId, title);
         activeDownloads.add(downloadId);
+        // Store download metadata for history
+        completedDownloads[downloadId] = { title, url, saveDir: appConfig.defaultSaveDir };
 
         if (isAudioTab) {
             // Audio-only mode: use extractAudio flag with chosen container
@@ -533,6 +657,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- Event delegation for progress item action buttons ---
+    progressList.addEventListener('click', async (e) => {
+        const playBtn = e.target.closest('.progress-play-btn');
+        const folderBtn = e.target.closest('.progress-folder-btn');
+        if (playBtn) {
+            const fp = decodeURIComponent(playBtn.getAttribute('data-filepath'));
+            const result = await window.electronAPI.openFile(fp);
+            if (result && result !== '') {
+                alert('Could not open file: ' + result);
+            }
+        } else if (folderBtn) {
+            const fp = decodeURIComponent(folderBtn.getAttribute('data-filepath'));
+            window.electronAPI.openFolder(fp);
+        }
+    });
+
     // --- IPC Listeners ---
     if (window.electronAPI) {
         window.electronAPI.onDownloadProgress((data) => {
@@ -569,32 +709,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fill.style.background = '#10B981';
             }
 
-            // Append Open File / Open Folder buttons if we know the file path
+            // Use data attributes + event delegation instead of inline onclick to avoid path escaping issues
             if (item && data.filePath) {
-                // Escape backslashes for JS string in inline onclick
-                const escapedPath = data.filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const encodedPath = encodeURIComponent(data.filePath);
                 item.insertAdjacentHTML('beforeend', `
                     <div class="progress-actions">
-                        <button class="action-link-btn" onclick="window.electronAPI.openFile('${escapedPath}')">
+                        <button class="action-link-btn progress-play-btn" data-filepath="${encodedPath}">
                             <i class="ri-play-circle-line"></i> Open File
                         </button>
-                        <button class="action-link-btn" onclick="window.electronAPI.openFolder('${escapedPath}')">
+                        <button class="action-link-btn progress-folder-btn" data-filepath="${encodedPath}">
                             <i class="ri-folder-open-line"></i> Open Folder
                         </button>
                     </div>
                 `);
             } else if (item && !data.filePath) {
                 // Fallback: open folder by save dir
+                const encodedDir = encodeURIComponent(appConfig.defaultSaveDir || '');
                 item.insertAdjacentHTML('beforeend', `
                     <div class="progress-actions">
-                        <button class="action-link-btn" onclick="window.electronAPI.openFolder('${(appConfig.defaultSaveDir || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">
+                        <button class="action-link-btn progress-folder-btn" data-filepath="${encodedDir}">
                             <i class="ri-folder-open-line"></i> Open Folder
                         </button>
                     </div>
                 `);
             }
 
+            // Save to history
+            const dlInfo = completedDownloads[data.id] || {};
+            if (window.electronAPI) {
+                window.electronAPI.addHistory({
+                    title: dlInfo.title || 'Unknown',
+                    filePath: data.filePath || null,
+                    url: dlInfo.url || '',
+                    saveDir: dlInfo.saveDir || appConfig.defaultSaveDir
+                });
+            }
+
             activeDownloads.delete(data.id);
+            delete completedDownloads[data.id];
         });
 
         window.electronAPI.onDownloadError((data) => {
@@ -609,6 +761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fill.style.background = '#EF4444';
             }
             activeDownloads.delete(data.id);
+            delete completedDownloads[data.id];
         });
     }
 });

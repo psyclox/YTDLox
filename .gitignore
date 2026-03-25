@@ -14,3 +14,6 @@ build-output/
 
 # Releases folder
 releases/
+
+# Original portable source
+allinit/

@@ -1,13 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
-const { create } = require('youtube-dl-exec');
-const ffmpegStatic = require('ffmpeg-static');
 const fs = require('fs');
 
 // These are initialized once app is ready (inside app.whenReady)
 let youtubedl;
 let ffmpegPath;
 let configPath;
+let historyPath;
 
 // Returns default config — called after app is ready so app.getPath works
 function getDefaultConfig() {
@@ -20,12 +19,34 @@ function getDefaultConfig() {
     };
 }
 
+// --- History helpers ---
+function readHistory() {
+    try {
+        if (fs.existsSync(historyPath)) {
+            const data = fs.readFileSync(historyPath, 'utf8');
+            return JSON.parse(data);
+        }
+        return [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeHistory(history) {
+    try {
+        fs.writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Failed to write history:', e);
+    }
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 960,
         height: 720,
         minWidth: 800,
         minHeight: 600,
+        icon: path.join(__dirname, 'icons', 'ytdlox_logo.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -40,9 +61,14 @@ function createWindow() {
     });
 
     win.loadFile('index.html');
+    win.maximize();
 }
 
 app.whenReady().then(() => {
+    // Defer heavy module loading until app is ready to avoid ESM conflicts
+    const { create } = require('youtube-dl-exec');
+    const ffmpegStatic = require('ffmpeg-static');
+
     // Initialize paths now that app is fully ready
     const ytDlpPath = app.isPackaged
         ? path.join(process.resourcesPath, 'youtube-dl-bin', 'yt-dlp.exe')
@@ -56,6 +82,7 @@ app.whenReady().then(() => {
 
     const userDataPath = app.getPath('userData');
     configPath = path.join(userDataPath, 'ytdlox_config.json');
+    historyPath = path.join(userDataPath, 'ytdlox_history.json');
 
     createWindow();
 
@@ -106,13 +133,87 @@ ipcMain.handle('config:set', (event, newConfig) => {
     }
 });
 
+// --- History Handlers ---
+ipcMain.handle('history:get', () => {
+    return readHistory();
+});
+
+ipcMain.handle('history:add', (event, entry) => {
+    try {
+        const history = readHistory();
+        // Add to the beginning (newest first)
+        history.unshift({
+            title: entry.title || 'Unknown',
+            filePath: entry.filePath || null,
+            url: entry.url || '',
+            date: new Date().toISOString(),
+            saveDir: entry.saveDir || ''
+        });
+        // Keep max 200 entries
+        if (history.length > 200) history.length = 200;
+        writeHistory(history);
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('history:clear', () => {
+    try {
+        writeHistory([]);
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
 // Shell handlers – open file or reveal in folder
 ipcMain.handle('shell:openFile', async (event, filePath) => {
+    if (!filePath) return 'No file path provided';
+
+    // Normalize path separators
+    filePath = path.normalize(filePath);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+        // Try common extension variations (yt-dlp sometimes changes ext during merge)
+        const dir = path.dirname(filePath);
+        const baseName = path.basename(filePath, path.extname(filePath));
+        const tryExts = ['.mkv', '.mp4', '.webm', '.mp3', '.m4a', '.opus', '.flac', '.wav', '.ogg'];
+        let found = false;
+        for (const ext of tryExts) {
+            const alternate = path.join(dir, baseName + ext);
+            if (fs.existsSync(alternate)) {
+                filePath = alternate;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return `File not found: ${filePath}`;
+        }
+    }
+
     const result = await shell.openPath(filePath);
     return result; // empty string on success, error message on failure
 });
 
 ipcMain.handle('shell:openFolder', (event, filePath) => {
+    if (!filePath) return { success: false, error: 'No file path provided' };
+
+    // Normalize path
+    filePath = path.normalize(filePath);
+
+    // If the file doesn't exist, try to at least show the parent directory
+    if (!fs.existsSync(filePath)) {
+        const dir = path.dirname(filePath);
+        if (fs.existsSync(dir)) {
+            shell.openPath(dir);
+            return { success: true };
+        }
+        return { success: false, error: 'Directory not found' };
+    }
+
     shell.showItemInFolder(filePath);
     return { success: true };
 });
@@ -193,7 +294,8 @@ ipcMain.handle('ytdl:getInfo', async (event, url) => {
             acodec: format.acodec,
             format_note: format.format_note,
             tbr: format.tbr,
-            abr: format.abr
+            abr: format.abr,
+            language: format.language || null
         }));
 
         return {
@@ -245,6 +347,10 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
             if (format && format !== 'default') {
                 dlOptions.format = format;
             }
+
+            // Enable multi-stream audio — downloads ALL audio tracks (multiple languages)
+            dlOptions.audioMultistreams = true;
+
             if (options && options.mergeOutputFormat) {
                 dlOptions.mergeOutputFormat = options.mergeOutputFormat;
             }
@@ -253,10 +359,13 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
         if (options) {
             if (options.embedThumbnail) dlOptions.embedThumbnail = true;
             if (options.embedSubs) {
-                // FIX: Do NOT set writeSubs — that creates sidecar .srt files.
-                // Only embedSubs ensures subtitles are embedded without writing separate files.
+                // Embed ALL subtitles including auto-generated ones
                 dlOptions.embedSubs = true;
                 dlOptions.subLangs = 'all,-live_chat';
+                dlOptions.writeAutoSubs = true;
+                dlOptions.convertSubs = 'srt';
+                dlOptions.subFormat = 'best';
+                dlOptions.ignoreErrors = true;
             }
             if (options.embedChapters) dlOptions.embedChapters = true;
             if (options.embedMetadata) dlOptions.embedMetadata = true;
@@ -267,6 +376,8 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
 
             let errorLog = '';
             let resolvedFilePath = null; // Track actual output file path
+            let subtitleCount = 0;
+            let subtitleTotal = 0;
 
             downloadProcess.stdout.on('data', (data) => {
                 const outputStr = data.toString();
@@ -283,8 +394,39 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
                         speed: match[3],
                         eta: match[4]
                     });
-                } else if (outputStr.includes('[Merger]') || outputStr.includes('[ExtractAudio]')) {
-                    event.sender.send('download-status', { id: id, status: 'Processing...' });
+                } else if (outputStr.includes('[Merger]')) {
+                    event.sender.send('download-status', { id: id, status: 'Merging video and audio...' });
+                } else if (outputStr.includes('[ExtractAudio]')) {
+                    event.sender.send('download-status', { id: id, status: 'Extracting audio...' });
+                } else if (outputStr.includes('[info] Writing video subtitles') || outputStr.includes('[info] Writing automatic subtitles')) {
+                    // Track subtitle writing — yt-dlp outputs this for each sub language
+                    subtitleCount++;
+                    // Try to extract language from the line, e.g. "Writing video subtitles to: ...en.vtt"
+                    const langMatch = outputStr.match(/\.([a-z]{2,3}(?:-[a-zA-Z]+)?)\.[a-z]+$/);
+                    const lang = langMatch ? langMatch[1] : '';
+                    event.sender.send('download-status', {
+                        id: id,
+                        status: `Downloading subtitle ${subtitleCount}${lang ? ' (' + lang + ')' : ''}...`
+                    });
+                } else if (outputStr.includes('[download] Downloading item')) {
+                    // Catch "[download] Downloading item X of Y" for subtitle/metadata items
+                    const itemMatch = outputStr.match(/\[download\] Downloading item (\d+) of (\d+)/);
+                    if (itemMatch) {
+                        event.sender.send('download-status', {
+                            id: id,
+                            status: `Downloading item ${itemMatch[1]} of ${itemMatch[2]}...`
+                        });
+                    }
+                } else if (outputStr.includes('[SubtitleConvertor]') || outputStr.includes('[ConvertSubtitles]')) {
+                    event.sender.send('download-status', { id: id, status: 'Converting subtitles...' });
+                } else if (outputStr.includes('[EmbedSubtitle]')) {
+                    event.sender.send('download-status', { id: id, status: 'Embedding subtitles...' });
+                } else if (outputStr.includes('[EmbedThumbnail]')) {
+                    event.sender.send('download-status', { id: id, status: 'Embedding thumbnail...' });
+                } else if (outputStr.includes('[Metadata]') || outputStr.includes('[EmbedMetadata]')) {
+                    event.sender.send('download-status', { id: id, status: 'Embedding metadata...' });
+                } else if (outputStr.includes('[info]') && outputStr.includes('Downloading')) {
+                    event.sender.send('download-status', { id: id, status: 'Fetching info...' });
                 }
 
                 // Track the resolved output file path from yt-dlp stdout lines:
@@ -294,6 +436,8 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
                 const destMatch = outputStr.match(/\[download\] Destination: (.+)/);
                 const extractMatch = outputStr.match(/\[ExtractAudio\] Destination: (.+)/);
                 const mergerMatch = outputStr.match(/\[Merger\] Merging formats into "(.+)"/);
+                // Also catch: [download] C:\...\file.mkv has already been downloaded
+                const alreadyMatch = outputStr.match(/\[download\] (.+) has already been downloaded/);
 
                 if (mergerMatch) {
                     resolvedFilePath = mergerMatch[1].trim();
@@ -301,6 +445,8 @@ ipcMain.handle('ytdl:download', async (event, { id, url, format, saveDir, option
                     resolvedFilePath = extractMatch[1].trim();
                 } else if (destMatch) {
                     resolvedFilePath = destMatch[1].trim();
+                } else if (alreadyMatch) {
+                    resolvedFilePath = alreadyMatch[1].trim();
                 }
             });
 

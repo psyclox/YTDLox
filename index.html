@@ -23,7 +23,7 @@
         <header class="app-header">
             <div class="header-left">
                 <div class="logo">
-                    <i class="ri-download-cloud-2-fill logo-icon"></i>
+                    <img src="icons/ytdlox_logo.png" alt="YTDLox" class="logo-img">
                     <h2>YTDLox</h2>
                 </div>
             </div>
@@ -54,14 +54,7 @@
                 </div>
 
                 <div class="search-bar" style="flex-direction: column; gap: 8px;">
-                    <div class="select-wrapper">
-                        <select id="search-type" class="form-control"
-                            style="padding: 8px 12px; font-size: 13px; font-family: var(--font-body);">
-                            <option value="video">Video Search</option>
-                            <option value="channel">Channel / Playlist URL</option>
-                        </select>
-                        <i class="ri-arrow-down-s-line select-icon" style="right: 12px;"></i>
-                    </div>
+
                     <div style="display: flex; gap: 8px; width: 100%;">
                         <input type="text" id="search-input" placeholder="Search or paste URL..." class="search-input">
                         <button class="search-btn" id="search-btn">GO</button>
@@ -95,8 +88,9 @@
                     <input type="text" class="url-input flex-1" id="url-input" placeholder="Paste YouTube URL here..."
                         value="">
                     <button class="clear-btn" id="clear-btn" title="Clear"><i class="ri-close-circle-fill"></i></button>
-                    <button class="floating-action-btn pulse ml-2" id="download-btn" title="Download">
-                        <i class="ri-download-cloud-2-fill"></i>
+                    <button class="primary-btn download-action-btn" id="download-btn" style="padding: 8px 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download
                     </button>
                 </div>
 
@@ -217,16 +211,29 @@
                 </div>
             </section>
 
-            <!-- Right Panel: Progress -->
+            <!-- Right Panel: Downloads & History -->
             <aside class="right-panel" id="right-panel">
                 <div class="panel-header" style="justify-content: space-between; align-items: center;">
                     <button class="icon-btn" id="toggle-right-btn" title="Collapse Panel"><i
                             class="ri-skip-forward-line"></i></button>
-                    <h3>DOWNLOADS</h3>
+                    <div class="right-panel-tabs">
+                        <button class="right-tab-btn active" data-right-tab="downloads" title="Active Downloads"><i class="ri-download-2-line"></i> Downloads</button>
+                        <button class="right-tab-btn" data-right-tab="history" title="Download History"><i class="ri-history-line"></i> History</button>
+                    </div>
                 </div>
                 <div class="progress-list" id="progress-list">
                     <div class="empty-state-small empty-progress">
                         <i class="ri-download-2-line"></i><br>No active downloads
+                    </div>
+                </div>
+                <div class="history-list" id="history-list" style="display: none;">
+                    <div class="history-actions" style="padding: 8px 14px; display: flex; justify-content: flex-end;">
+                        <button class="clear-history-btn" id="clear-history-btn" title="Clear History">
+                            <i class="ri-delete-bin-line"></i> Clear
+                        </button>
+                    </div>
+                    <div class="history-entries" id="history-entries">
+                        <div class="empty-state-small"><i class="ri-history-line" style="font-size:22px; display:block; margin-bottom:8px; color:var(--text-secondary);"></i>No download history</div>
                     </div>
                 </div>
             </aside>
@@ -281,7 +288,7 @@
                     </div>
                 </div>
                 <div class="settings-footer mt-4" style="text-align: center; margin-top: 32px;">
-                    <p style="color: var(--text-muted); font-size: 13px;">YTDLox v3.4.2 · Developed by Psyclox</p>
+                    <p style="color: var(--text-muted); font-size: 13px;">YTDLox v3.8.1 · Developed by Psyclox</p>
                     <a href="https://github.com/psyclox" target="_blank"
                         style="color: var(--accent-blue); text-decoration: none; font-size:13px;">github.com/psyclox</a>
                 </div>
